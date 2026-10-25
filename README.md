@@ -4,24 +4,14 @@ A configurable workout timer app designed for circuit training with audio cues a
 
 ## Features
 
-- **Configurable Durations**: Set custom workout and break durations
-- **Multiple Rounds**: Define the number of workout rounds
-- **Audio Cues**: Sound notifications for:
-  - 5-second preparation time before workout begins
-  - 3-2-1 countdown in final seconds (descending tones for natural buildup)
-  - Start and end of each phase
-- **Visual Feedback**: 
-  - Large countdown timer
-  - Progress bar
-  - Color-coded phases (blue for prep, green for workout, orange for break)
-- **Intuitive Controls**: Start, pause, resume, and reset functionality
-- **Accessibility**: Full keyboard navigation and screen reader support
-
-## Default Settings
-
-- Workout Duration: 40 seconds
-- Break Duration: 20 seconds
-- Rounds: 3
+- **Workout builder** with three sections:
+  - **Warm-up** (optional): repetitions, length of each, break between
+  - **Main workout**: repetitions, length, break between, plus an optional long break after every N reps
+  - **Wind-down** (optional): same options as the warm-up
+- **Templates**: save workouts and replay them with one tap, or start a workout without saving. Templates are stored in the browser (localStorage), so they stay on the device.
+- **Full-screen player**: color-coded intervals, big countdown, "up next" preview, overall progress, pause, skip forward/back
+- **Audio and vibration cues**: start/rest tones, 3-2-1 countdown, finish chime; vibration where the device supports it
+- **Mobile-first**: large touch targets, safe-area aware layout, and the screen stays awake during a workout (Wake Lock API)
 
 ## Getting Started
 
@@ -41,15 +31,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Usage
 
-1. **Configure Settings**: Adjust workout duration, break duration, and number of rounds using the input fields
-2. **Start Workout**: Click the "Start" button to begin your workout session
-3. **Follow Audio Cues**: Listen for:
-   - 5-second prep countdown before first workout
-   - Start tone at the beginning of each phase
-   - 3-2-1 countdown with descending tones (high→medium→low) in final seconds
-   - End tone when each phase completes
-4. **Control Playback**: Use pause/resume and reset buttons as needed
-5. **Track Progress**: Monitor your current round and remaining time
+1. Tap **New workout**, set up the warm-up, main workout and wind-down
+2. Tap **Save template** to keep it, or **Start now** to go straight to the timer
+3. From the home screen, tap ▶ on a template to start it, or tap its name to edit it
 
 ## Technologies Used
 
@@ -70,8 +54,5 @@ The app uses the Web Audio API for sound generation, which is supported in all m
 
 ## Future Enhancements
 
-- Sound customization options
-- Preset workout templates
-- Vibration support for mobile devices
-- Visual progress indicators and animations
-- Workout history tracking 
+- Sync templates across devices (would need accounts and a database)
+- Workout history tracking
