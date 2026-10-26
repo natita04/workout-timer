@@ -28,6 +28,22 @@ function background(i: Interval | undefined, status: Status): string {
   }
 }
 
+/** What the voice says when an interval starts. Warm-up and wind-down are announced once, on their first rep. */
+function spokenCue(i: Interval): string | null {
+  switch (i.kind) {
+    case 'work':
+      if (i.section === 'main') return 'Work out'
+      if (i.rep !== 1) return null
+      return i.section === 'warmup' ? 'Warm up' : 'Wind down'
+    case 'rest':
+      return 'Rest'
+    case 'longBreak':
+      return 'Long rest'
+    case 'prep':
+      return null
+  }
+}
+
 /** Keeps the screen awake while the timer runs (supported on most modern mobile browsers). */
 function useWakeLock(active: boolean) {
   useEffect(() => {
@@ -84,6 +100,8 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
         beeper.rest()
         vibrate([120, 80, 120])
       }
+      const phrase = i && spokenCue(i)
+      if (phrase) beeper.say(phrase)
     },
     [beeper],
   )

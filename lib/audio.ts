@@ -6,8 +6,12 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
  * Beeps via the Web Audio API. Call `unlock()` from a tap handler first —
  * iOS Safari only allows audio from a context created/resumed in a user gesture.
  */
+const hasSpeech = () => typeof window !== 'undefined' && 'speechSynthesis' in window
+
 export function useBeeper() {
   const ctxRef = useRef<AudioContext | null>(null)
+  const sayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const speechPrimedRef = useRef(false)
 
   const unlock = useCallback(() => {
     try {
@@ -19,9 +23,36 @@ export function useBeeper() {
     } catch (error) {
       console.warn('Audio not supported:', error)
     }
+    // iOS also only allows speech once something has been spoken inside a tap.
+    if (hasSpeech() && !speechPrimedRef.current) {
+      const primer = new SpeechSynthesisUtterance(' ')
+      primer.volume = 0
+      window.speechSynthesis.speak(primer)
+      speechPrimedRef.current = true
+    }
   }, [])
 
-  useEffect(() => () => void ctxRef.current?.close(), [])
+  useEffect(
+    () => () => {
+      ctxRef.current?.close()
+      if (sayTimerRef.current) clearTimeout(sayTimerRef.current)
+      if (hasSpeech()) window.speechSynthesis.cancel()
+    },
+    [],
+  )
+
+  /** Speaks `text` after `delayMs` (so it follows the tone), replacing anything still pending. */
+  const say = useCallback((text: string, delayMs = 400) => {
+    if (!hasSpeech()) return
+    if (sayTimerRef.current) clearTimeout(sayTimerRef.current)
+    window.speechSynthesis.cancel()
+    sayTimerRef.current = setTimeout(() => {
+      const u = new SpeechSynthesisUtterance(text)
+      u.lang = 'en-US'
+      u.rate = 1.05
+      window.speechSynthesis.speak(u)
+    }, delayMs)
+  }, [])
 
   const tone = useCallback((frequency: number, duration: number) => {
     const ctx = ctxRef.current
@@ -54,7 +85,10 @@ export function useBeeper() {
     setTimeout(() => tone(1100, 0.5), 500)
   }, [tone])
 
-  return useMemo(() => ({ unlock, countdown, start, rest, finish }), [unlock, countdown, start, rest, finish])
+  return useMemo(
+    () => ({ unlock, countdown, start, rest, finish, say }),
+    [unlock, countdown, start, rest, finish, say],
+  )
 }
 
 export function vibrate(pattern: number | number[]) {
