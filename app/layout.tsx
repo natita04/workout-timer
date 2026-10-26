@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Workout Timer',
   description: 'Build interval workouts with warm-up, main sets and wind-down',
-  appleWebApp: { capable: true, title: 'Workout Timer', statusBarStyle: 'default' },
+  appleWebApp: { capable: true, title: 'Workout', statusBarStyle: 'default' },
 }
 
 export const viewport: Viewport = {
