@@ -2,7 +2,7 @@ import type { Interval, MainSectionConfig, SectionConfig, SectionKey, WorkoutPla
 
 export const DEFAULT_PLAN: WorkoutPlan = {
   prepSeconds: 5,
-  warmup: { enabled: true, reps: 3, workSeconds: 30, restSeconds: 10 },
+  warmup: { enabled: true, reps: 3, workSeconds: 30, restSeconds: 10, exercises: [] },
   main: {
     enabled: true,
     reps: 8,
@@ -10,8 +10,9 @@ export const DEFAULT_PLAN: WorkoutPlan = {
     restSeconds: 20,
     longBreakEvery: 4,
     longBreakSeconds: 60,
+    exercises: [],
   },
-  cooldown: { enabled: true, reps: 2, workSeconds: 45, restSeconds: 0 },
+  cooldown: { enabled: true, reps: 2, workSeconds: 45, restSeconds: 0, exercises: [] },
 }
 
 export const SECTION_LABELS: Record<SectionKey, string> = {
@@ -26,7 +27,8 @@ export function sectionIntervals(section: SectionKey, cfg: SectionConfig | MainS
   if (!cfg.enabled || cfg.reps < 1 || cfg.workSeconds < 1) return out
   const { longBreakEvery = 0, longBreakSeconds = 0 } = section === 'main' ? (cfg as MainSectionConfig) : {}
   for (let rep = 1; rep <= cfg.reps; rep++) {
-    out.push({ kind: 'work', section, seconds: cfg.workSeconds, rep, totalReps: cfg.reps })
+    const exercise = cfg.exercises?.[rep - 1]?.trim() || undefined
+    out.push({ kind: 'work', section, seconds: cfg.workSeconds, rep, totalReps: cfg.reps, exercise })
     if (rep === cfg.reps) break
     const isLongBreak = longBreakEvery > 0 && longBreakSeconds > 0 && rep % longBreakEvery === 0
     if (isLongBreak) {
@@ -70,7 +72,7 @@ export function intervalLabel(i: Interval): string {
     case 'prep':
       return 'Get ready'
     case 'work':
-      return i.section === 'main' ? 'Work' : SECTION_LABELS[i.section!]
+      return i.exercise ?? (i.section === 'main' ? 'Work' : SECTION_LABELS[i.section!])
     case 'rest':
       return 'Rest'
     case 'longBreak':

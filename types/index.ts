@@ -7,6 +7,8 @@ export interface SectionConfig {
   workSeconds: number;
   /** Rest between reps. 0 = no rest. */
   restSeconds: number;
+  /** Optional exercise name for each rep (index 0 = rep 1). Blank = unnamed. */
+  exercises: string[];
 }
 
 export interface MainSectionConfig extends SectionConfig {
@@ -40,4 +42,6 @@ export interface Interval {
   /** 1-based rep within the section (for work/rest). */
   rep: number;
   totalReps: number;
+  /** Exercise name for this rep, if one was set (work intervals only). */
+  exercise?: string;
 }

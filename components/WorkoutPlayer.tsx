@@ -28,20 +28,35 @@ function background(i: Interval | undefined, status: Status): string {
   }
 }
 
-/** What the voice says when an interval starts. Warm-up and wind-down are announced once, on their first rep. */
-function spokenCue(i: Interval): string | null {
+/**
+ * What the voice says when an interval starts. Each section is announced once, on its first rep;
+ * rests name the upcoming exercise when it has one.
+ */
+function spokenCue(i: Interval, next: Interval | undefined): string | null {
   switch (i.kind) {
     case 'work':
-      if (i.section === 'main') return 'Work out'
       if (i.rep !== 1) return null
-      return i.section === 'warmup' ? 'Warm up' : 'Wind down'
+      return i.section === 'warmup' ? 'Warm up' : i.section === 'cooldown' ? 'Wind down' : 'Start workout'
     case 'rest':
-      return 'Rest'
-    case 'longBreak':
-      return 'Long rest'
+    case 'longBreak': {
+      const phrase = i.kind === 'rest' ? 'Rest.' : 'Long rest.'
+      return next?.exercise ? `${phrase} Next up: ${next.exercise}` : phrase
+    }
     case 'prep':
       return null
   }
+}
+
+/** Seconds before the end of an interval to announce the next exercise when no rest will do it. */
+const HEADS_UP_SECONDS = 10
+
+/**
+ * Spoken near the end of a work interval that runs straight into a named exercise
+ * (e.g. the last warm-up rep before the main workout), since there's no rest to announce it.
+ */
+function headsUpCue(i: Interval, next: Interval | undefined): string | null {
+  if (i.kind !== 'work' || next?.kind !== 'work' || !next.exercise) return null
+  return `Next up: ${next.exercise}`
 }
 
 /** Keeps the screen awake while the timer runs (supported on most modern mobile browsers). */
@@ -87,9 +102,11 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
   const endsAtRef = useRef(Date.now() + remainingMs)
   const indexRef = useRef(0)
   const lastBeepRef = useRef<number | null>(null)
+  const headsUpDoneRef = useRef(false)
 
   const cue = useCallback(
-    (i: Interval | undefined) => {
+    (index: number) => {
+      const i: Interval | undefined = timeline[index]
       if (!i) {
         beeper.finish()
         vibrate([200, 100, 200, 100, 400])
@@ -100,10 +117,10 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
         beeper.rest()
         vibrate([120, 80, 120])
       }
-      const phrase = i && spokenCue(i)
+      const phrase = i && spokenCue(i, timeline[index + 1])
       if (phrase) beeper.say(phrase)
     },
-    [beeper],
+    [timeline, beeper],
   )
 
   const goTo = useCallback(
@@ -111,11 +128,12 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
       const i = timeline[next]
       indexRef.current = next
       lastBeepRef.current = null
+      headsUpDoneRef.current = false
       setIndex(next)
       setRemainingMs(i.seconds * 1000)
       endsAtRef.current = Date.now() + i.seconds * 1000
       setStatus(keepStatus)
-      if (keepStatus === 'running') cue(i)
+      if (keepStatus === 'running') cue(next)
     },
     [timeline, cue],
   )
@@ -123,7 +141,7 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
   // Cue the first interval once on mount.
   useEffect(() => {
     if (timeline.length === 0) setStatus('done')
-    else cue(timeline[0])
+    else cue(0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -139,7 +157,7 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
         if (i >= timeline.length) {
           setStatus('done')
           setRemainingMs(0)
-          cue(undefined)
+          cue(i)
           return
         }
         endsAtRef.current += timeline[i].seconds * 1000
@@ -148,10 +166,17 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
       if (i !== indexRef.current) {
         indexRef.current = i
         lastBeepRef.current = null
+        headsUpDoneRef.current = false
         setIndex(i)
-        cue(timeline[i])
+        cue(i)
       }
       const secs = Math.ceil(left / 1000)
+      // Only for intervals long enough that the heads-up doesn't talk over the interval's own cue.
+      if (secs <= HEADS_UP_SECONDS && timeline[i].seconds > HEADS_UP_SECONDS && !headsUpDoneRef.current) {
+        headsUpDoneRef.current = true
+        const phrase = headsUpCue(timeline[i], timeline[i + 1])
+        if (phrase) beeper.say(phrase, 0)
+      }
       if (secs <= 3 && timeline[i].seconds > 3 && lastBeepRef.current !== secs) {
         lastBeepRef.current = secs
         beeper.countdown(secs)
@@ -184,7 +209,7 @@ export default function WorkoutPlayer({ name, plan, beeper, onExit }: WorkoutPla
     if (index + 1 >= timeline.length) {
       setStatus('done')
       setRemainingMs(0)
-      cue(undefined)
+      cue(timeline.length)
     } else {
       goTo(index + 1, status)
     }
