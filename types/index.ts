@@ -7,7 +7,7 @@ export interface SectionConfig {
   workSeconds: number;
   /** Rest between reps. 0 = no rest. */
   restSeconds: number;
-  /** Optional exercise name for each rep (index 0 = rep 1). Blank = unnamed. */
+  /** Optional exercise names, cycled through the reps in order (6 names over 18 reps = 3 rounds). */
   exercises: string[];
 }
 

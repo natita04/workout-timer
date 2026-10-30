@@ -18,52 +18,78 @@ interface ExerciseNamesProps {
   onChange: (names: string[]) => void
 }
 
-/** Optional per-rep exercise names. Names past the rep count are kept, so lowering then raising reps doesn't lose them. */
+/** Optional exercise names. The list repeats in order across the reps, so a 6-move circuit is entered once. */
 function ExerciseNames({ section, reps, names, onChange }: ExerciseNamesProps) {
-  const named = names.slice(0, reps).filter((n) => n.trim()).length
   // Start expanded when the template already has names; after that the user controls it.
-  const [open, setOpen] = useState(named > 0)
-  const setName = (index: number, name: string) => {
-    const next = [...names]
-    while (next.length < index) next.push('')
-    next[index] = name
-    onChange(next)
+  const [open, setOpen] = useState(names.length > 0)
+  const setName = (index: number, name: string) => onChange(names.map((n, i) => (i === index ? name : n ?? '')))
+  const add = () => {
+    onChange([...names, ''])
+    // Focus the new field once it renders.
+    requestAnimationFrame(() => document.getElementById(`${section}-exercise-${names.length}`)?.focus())
   }
+  const remove = (index: number) => onChange(names.filter((_, i) => i !== index))
+
+  const count = names.length
+  const rounds = count ? Math.floor(reps / count) : 0
+  const extra = count ? reps % count : 0
+  const plan =
+    count === 0
+      ? null
+      : count >= reps
+        ? count > reps
+          ? `Only the first ${reps} are used — raise Repetitions to ${count} to do them all.`
+          : 'Each exercise once.'
+        : `Repeats ${rounds} ${rounds === 1 ? 'time' : 'times'}${extra ? `, plus the first ${extra}` : ''} over ${reps} reps.`
 
   return (
     <details className="group py-2" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-gray-700">
         <span>Exercise names</span>
         <span className="flex items-center gap-2 text-xs text-gray-500">
-          {named > 0 ? `${named} of ${reps}` : 'Optional'}
+          {count > 0 ? `${count} ${count === 1 ? 'exercise' : 'exercises'}` : 'Optional'}
           <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
             <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
       </summary>
+      {count === 0 && <p className="mt-1 text-xs text-gray-500">Doing a circuit? Add each exercise once — the list repeats for every round.</p>}
       <ol className="mt-1 space-y-2">
-        {Array.from({ length: reps }, (_, index) => {
+        {names.map((name, index) => {
           const id = `${section}-exercise-${index}`
           return (
-            <li key={index} className="flex items-center gap-3">
+            <li key={index} className="flex items-center gap-2">
               <label htmlFor={id} className="w-6 shrink-0 text-right font-mono text-sm tabular-nums text-gray-500">
-                <span className="sr-only">Exercise for rep </span>
+                <span className="sr-only">Exercise </span>
                 {index + 1}
               </label>
               <input
                 id={id}
                 type="text"
-                value={names[index] ?? ''}
+                value={name ?? ''}
                 onChange={(e) => setName(index, e.target.value)}
                 placeholder="e.g. Squats"
                 autoCapitalize="words"
                 enterKeyHint="next"
                 className="min-h-[44px] w-full rounded-xl border border-gray-200 bg-gray-50 px-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/30"
               />
+              <button type="button" onClick={() => remove(index)} className="icon-btn text-gray-500" aria-label={`Remove exercise ${index + 1}`}>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                </svg>
+              </button>
             </li>
           )
         })}
       </ol>
+      <button
+        type="button"
+        onClick={add}
+        className="mt-2 min-h-[44px] w-full rounded-xl border border-dashed border-gray-300 text-sm font-semibold text-primary-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+      >
+        + Add exercise
+      </button>
+      {plan && <p className="mt-2 text-xs text-gray-500">{plan}</p>}
     </details>
   )
 }

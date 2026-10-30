@@ -27,7 +27,8 @@ export function sectionIntervals(section: SectionKey, cfg: SectionConfig | MainS
   if (!cfg.enabled || cfg.reps < 1 || cfg.workSeconds < 1) return out
   const { longBreakEvery = 0, longBreakSeconds = 0 } = section === 'main' ? (cfg as MainSectionConfig) : {}
   for (let rep = 1; rep <= cfg.reps; rep++) {
-    const exercise = cfg.exercises?.[rep - 1]?.trim() || undefined
+    const names = cfg.exercises ?? []
+    const exercise = names.length ? names[(rep - 1) % names.length]?.trim() || undefined : undefined
     out.push({ kind: 'work', section, seconds: cfg.workSeconds, rep, totalReps: cfg.reps, exercise })
     if (rep === cfg.reps) break
     const isLongBreak = longBreakEvery > 0 && longBreakSeconds > 0 && rep % longBreakEvery === 0
